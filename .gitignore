@@ -1,0 +1,13 @@
+
+*.err
+*.log
+*.pot
+*.pyc
+*.pid
+
+# pycharm
+.idea
+
+.env
+
+

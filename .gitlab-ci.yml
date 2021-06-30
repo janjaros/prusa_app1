@@ -1,0 +1,58 @@
+
+image: docker:latest
+
+services:
+  # must be here or docker commands not work
+  - docker:dind
+
+variables:
+  # When using dind, it's wise to use the overlayfs driver for
+  # improved performance.
+  DOCKER_DRIVER: overlay2
+  CONTAINER_TEST_IMAGE: XXXXXXXXXXXXX:4567/YYY/someapp/someapp:$CI_COMMIT_REF_NAME
+  CONTAINER_RELEASE_IMAGE: XXXXXXXXXXXXX:4567/YYY/someapp/someapp:latest
+
+stages:
+- build
+- analysis
+- release
+
+
+before_script:
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN XXXXXXXXXXXXX:4567
+
+build:
+  stage: build
+  script:
+    - current_time=`date "+%y.%m.%d-%H%M"`
+    - docker build --pull -f docker/app/Dockerfile -t $CONTAINER_TEST_IMAGE --build-arg CI_COMMIT_SHA=$CI_COMMIT_SHA --build-arg CI_COMMIT_TAG=$CI_COMMIT_TAG --build-arg GIT_TIMESTAMP="${current_time}" --build-arg CI_COMMIT_REF_NAME=${CI_COMMIT_REF_NAME} .
+    - docker push $CONTAINER_TEST_IMAGE
+
+
+code-analysis:
+  stage: analysis
+  allow_failure: false
+  script:
+    - docker build -f docker/prospector/Dockerfile -t prospector-temp --build-arg IMAGE=$CONTAINER_TEST_IMAGE .
+    - docker run prospector-temp
+
+
+code-safety:
+  stage: analysis
+  allow_failure: true
+  script:
+    - docker build -f docker/safety/Dockerfile -t safety-temp --build-arg IMAGE=$CONTAINER_TEST_IMAGE .
+    - docker run safety-temp
+
+
+release-image:
+  stage: release
+  script:
+    - docker pull $CONTAINER_TEST_IMAGE
+    - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
+    - docker push $CONTAINER_RELEASE_IMAGE
+  only:
+    - master
+    - tags
+
+

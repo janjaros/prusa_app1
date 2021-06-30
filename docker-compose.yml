@@ -1,0 +1,32 @@
+version: '2.4'
+#
+#FOR DEVELOPMENT PURPOSE ONLY!!!!!!
+#
+#
+services:
+
+    app:
+        build:
+            dockerfile: docker/app/Dockerfile
+            context: .
+        volumes:
+            - ./src:/home/docker/src
+        depends_on: ["redis"]
+        working_dir: /home/docker/src
+        environment:
+            - DATABASE_URI=postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+        ports:
+          - "8004:5000"
+
+    redis:
+        image: redis:alpine
+
+    db:
+      image: library/postgres:12.5-alpine
+      environment: [ "POSTGRES_USER=${DB_USER}","POSTGRES_PASSWORD=${DB_PASSWORD}","POSTGRES_DB=${DB_NAME}" ]
+      volumes: [ "db_data:/var/lib/postgresql/data" ]
+
+
+
+volumes:
+  db_data:

@@ -1,0 +1,9 @@
+strictness: medium
+# Lets stay with lower strictness before we fix all the bugs in lower levels.
+# strictness: veryhigh
+
+#uses:
+#  - celery
+
+#mypy:
+#  run: false

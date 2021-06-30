@@ -1,0 +1,42 @@
+version: '3.7'
+#
+#Change the DATABASE_URI ENV with proper credentials and local server IP
+#
+#
+
+services:
+
+    app:
+        deploy:
+          replicas: 2
+          update_config:
+            parallelism: 1
+            order: start-first
+            failure_action: rollback
+            delay: 10s
+          rollback_config:
+            parallelism: 0
+            order: stop-first
+          restart_policy:
+            condition: any
+            delay: 5s
+            max_attempts: 3
+            window: 120s
+        image: localhost:5000/prusa_app
+
+        depends_on: ["redis"]
+        working_dir: /home/docker/src
+        environment:
+            - "DATABASE_URI=postgresql+psycopg2://postgres:_PASSWORD_@_IP_:_PORT_/_DB_NAME_"
+        ports:
+          - "8004:5000"
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:5000" ]
+          start_period: 15s
+          interval: 15s
+          timeout: 10s
+          retries: 2
+
+    redis:
+        image: redis:alpine
+
